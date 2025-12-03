@@ -15,7 +15,7 @@ public class RepSummaryUI : MonoBehaviour
     private int goodReps = 0;
     private int badReps = 0;
 
-    private int lastRawRep = -1;   // last rep_count we saw from Python
+    private int lastRawRep = -1;   
     private bool initialized = false;
 
     private Dictionary<string, int> mistakeCounts = new Dictionary<string, int>();
@@ -105,11 +105,9 @@ public class RepSummaryUI : MonoBehaviour
         return bestText;
     }
 
-    // Hook this to your Clear Reps button
     public void ClearReps()
     {
-        // IMPORTANT: DO NOT touch lastRawRep here.
-        // We only reset the *summary*, not the source counter in Python.
+       
         totalReps = 0;
         goodReps = 0;
         badReps = 0;
