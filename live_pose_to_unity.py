@@ -40,11 +40,6 @@ UDP_CONTROL_PORT = 5006    # Unity -> Python exercise selection
 
 sock_out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-# data, addr = sock_out.recvfrom(1024)
-# print("CONTROL RAW:", data)
-# msg = json.loads(data.decode("utf-8"))
-# print("PARSED:", msg)
-
 
 current_exercise = "curl"
 exercise_lock = threading.Lock()
