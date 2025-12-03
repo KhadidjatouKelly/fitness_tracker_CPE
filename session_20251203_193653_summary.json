@@ -1,0 +1,28 @@
+{
+  "video_id": "session_20251203_193653",
+  "exercises_seen": [
+    "melee_swing",
+    "curl",
+    "front_raise"
+  ],
+  "total_frames": 2642,
+  "good_frames": 102,
+  "bad_frames": 2540,
+  "good_form_ratio": 0.03860711582134747,
+  "common_mistakes": [
+    {
+      "feedback": "Arms/shoulders not visible.",
+      "count": 1429
+    },
+    {
+      "feedback": "Arms not clearly visible.",
+      "count": 491
+    },
+    {
+      "feedback": "Control the top (don\u2019t cut range).",
+      "count": 302
+    }
+  ],
+  "video_path": "sessions/session_20251203_193653_annotated.mp4",
+  "ended_at": 1764776375.871867
+}
