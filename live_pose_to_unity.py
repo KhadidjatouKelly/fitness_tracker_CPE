@@ -27,10 +27,15 @@ import socket
 import threading
 from pathlib import Path
 from collections import Counter
+from firestore_utils import push_session_to_firestore
 
 import cv2
 import mediapipe as mp
 import numpy as np
+# run_session_pipeline.py
+
+
+
 
 # ---------------- NETWORK ----------------
 UDP_OUT_IP = "172.20.10.7"   # Unity machine (127.0.0.1 if same PC)  172.20.10.7
@@ -39,6 +44,11 @@ UDP_OUT_PORT = 5005        # Python -> Unity pose data
 UDP_CONTROL_PORT = 5006    # Unity -> Python exercise selection
 
 sock_out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+# data, addr = sock_out.recvfrom(1024)
+# print("CONTROL RAW:", data)
+# msg = json.loads(data.decode("utf-8"))
+# print("PARSED:", msg)
 
 
 current_exercise = "curl"
@@ -120,6 +130,7 @@ def classify_curl(pts):
     if ang > elbow_top:
         return ang, "needs_correction", "Extend fully at the bottom (no hyperextension)."
     return ang, "needs_correction", "Adjust elbow range of motion."
+
 
 def classify_front_raise(pts, shoulder_min):
     if shoulder_min is None:
@@ -466,16 +477,30 @@ def run_live(out_dir: str, show: bool):
     print("[LIVE] Saved summary:", summary_path)
     print("[LIVE] Good%:", round(summary["good_form_ratio"] * 100, 1))
 
+    # 🔥 Return summary so main() can push it to Firestore
+    return summary
+
 
 # ---------------- CLI ----------------
 def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out_dir", default="sessions", help="Where to save video + summary")
     ap.add_argument("--show", action="store_true", help="Show annotated window")
+    ap.add_argument("--user_id", required=True, help="ID of the current user")
     return ap.parse_args()
+
+
 
 if __name__ == "__main__":
     args = parse_args()
+
+    # Start Unity control listener in the background
     t = threading.Thread(target=control_loop, daemon=True)
     t.start()
-    run_live(args.out_dir, args.show)
+
+    # Run the live session (records video, writes summary.json, etc.)
+    summary = run_live(args.out_dir, args.show)
+
+    # 🔥 Push this session to Firestore
+    push_session_to_firestore(args.user_id, summary)
+
