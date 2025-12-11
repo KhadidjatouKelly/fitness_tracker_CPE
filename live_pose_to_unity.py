@@ -37,7 +37,7 @@ import numpy as np
 
 
 
-# ---------------- NETWORK ----------------
+# NETWORK
 UDP_OUT_IP = "172.20.10.7"   # Unity machine (127.0.0.1 if same PC)  172.20.10.7
 UDP_OUT_PORT = 5005        # Python -> Unity pose data
 
@@ -55,7 +55,7 @@ current_exercise = "curl"
 exercise_lock = threading.Lock()
 VALID_EXERCISES = ["curl", "front_raise", "front_punch", "melee_swing"]
 
-# ---------------- GEOMETRY ----------------
+# GEOMETRY 
 POSE_MAP = {
     "nose": 0,
     "left_shoulder": 11, "right_shoulder": 12,
@@ -108,7 +108,7 @@ def shoulder_flex_angle(pts, side):
         return angle_3pts(hip, sh, wr)
     return None
 
-# ---------------- CLASSIFIERS (for feedback only) ----------------
+# CLASSIFIERS (for feedback only) 
 def classify_curl(pts):
     """
     Form classification for curls (feedback).
@@ -175,7 +175,7 @@ def classify_melee_swing(pts, shoulder_min, elbow_min):
         msgs.append("Swing through a mid-range arc, not too low or above head.")
     return elbow_min, "needs_correction", "; ".join(msgs)
 
-# ---------------- GENERIC ANGLE-BASED REP COUNTER ----------------
+# GENERIC ANGLE-BASED REP COUNTER 
 class RangeRepCounter:
     """
     Generic HIGH->LOW->HIGH cycle-based rep counter.
@@ -248,7 +248,7 @@ def make_melee_swing_counter():
     # use elbow angle: swing: bent (< 110) then extend (> 150)
     return RangeRepCounter(low_threshold=110.0, high_threshold=150.0, min_low_frames=2)
 
-# ---------------- DRAWING ----------------
+# DRAWING 
 SKELETON = [
     ("left_shoulder", "right_shoulder"),
     ("left_shoulder", "left_elbow"), ("left_elbow", "left_wrist"),
@@ -267,7 +267,7 @@ def draw_skeleton(img, pts):
         if p is not None:
             cv2.circle(img, (int(p[0]), int(p[1])), 3, (255, 255, 255), -1)
 
-# ---------------- CONTROL THREAD ----------------
+# CONTROL THREAD 
 def control_loop():
     global current_exercise
     sock_ctrl = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -288,7 +288,7 @@ def control_loop():
         except Exception as e:
             print("[CTRL] Error:", e)
 
-# ---------------- MAIN LOOP ----------------
+# MAIN LOOP 
 def run_live(out_dir: str, show: bool):
     outp = Path(out_dir)
     outp.mkdir(parents=True, exist_ok=True)
@@ -383,7 +383,7 @@ def run_live(out_dir: str, show: bool):
                 feature_val = None
                 rep_count = 0
 
-                # ---- per-exercise logic ----
+                # per-exercise logic 
                 if ex == "curl":
                     feature_val, posture_label, feedback = classify_curl(pts)
                     curl_counter.update(feature_val)
@@ -404,7 +404,7 @@ def run_live(out_dir: str, show: bool):
                     melee_counter.update(elbow_min)
                     rep_count = melee_counter.rep_count
 
-                # ---- stats for summary ----
+                # stats for summary
                 if posture_label == "good":
                     good_frames += 1
                 else:
@@ -412,7 +412,7 @@ def run_live(out_dir: str, show: bool):
                     if feedback:
                         mistake_counter[feedback] += 1
 
-                # ---- SEND TO UNITY ----
+                # SEND TO UNITY 
                 msg = {
                     "timestamp": t_now,
                     "exercise": ex,
@@ -428,7 +428,7 @@ def run_live(out_dir: str, show: bool):
                 }
                 sock_out.sendto(json.dumps(msg).encode("utf-8"), (UDP_OUT_IP, UDP_OUT_PORT))
 
-                # ---- DRAW ----
+                # DRAW 
                 draw_skeleton(frame_flipped, pts)
                 cv2.putText(frame_flipped, f"{ex} | reps={rep_count}",
                             (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200, 200, 255), 2)
@@ -481,7 +481,7 @@ def run_live(out_dir: str, show: bool):
     return summary
 
 
-# ---------------- CLI ----------------
+# CLI 
 def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out_dir", default="sessions", help="Where to save video + summary")
