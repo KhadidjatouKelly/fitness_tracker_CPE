@@ -36,19 +36,20 @@ import numpy as np
 
 
 
+# ================================================================
+# USER CONFIGURATION (edit this for your setup)
+# ================================================================
+# Where Unity is listening for pose/feedback packets (Python -> Unity).
+# - If Unity and Python run on the SAME machine: use "127.0.0.1"
+# - If Unity runs on a DIFFERENT machine: use that machine's LAN IP (e.g., 192.168.x.x)
+UDP_UNITY_IP = "172.20.10.7"
+UDP_UNITY_PORT = 5005
 
-# NETWORK
-UDP_OUT_IP = "172.20.10.7"   # Unity machine (127.0.0.1 if same PC)  172.20.10.7
-UDP_OUT_PORT = 5005        # Python -> Unity pose data
-
-UDP_CONTROL_PORT = 5006    # Unity -> Python exercise selection
+# Where Python listens for Unity exercise-selection commands (Unity -> Python).
+# Unity should send {"exercise": "..."} to this port.
+UDP_PY_CONTROL_PORT = 5006
 
 sock_out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-# data, addr = sock_out.recvfrom(1024)
-# print("CONTROL RAW:", data)
-# msg = json.loads(data.decode("utf-8"))
-# print("PARSED:", msg)
 
 
 current_exercise = "curl"
@@ -175,7 +176,10 @@ def classify_melee_swing(pts, shoulder_min, elbow_min):
         msgs.append("Swing through a mid-range arc, not too low or above head.")
     return elbow_min, "needs_correction", "; ".join(msgs)
 
-# GENERIC ANGLE-BASED REP COUNTER 
+# GENERIC ANGLE-BASED REP COUNTER
+# Rep counting is based on angle cycles (HIGH->LOW->HIGH) to avoid being overly dependent
+# on classification labels, which can fluctuate with pose-estimation noise.
+
 class RangeRepCounter:
     """
     Generic HIGH->LOW->HIGH cycle-based rep counter.
@@ -271,11 +275,12 @@ def draw_skeleton(img, pts):
 def control_loop():
     global current_exercise
     sock_ctrl = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock_ctrl.bind(("", UDP_CONTROL_PORT))
+    sock_ctrl.bind(("", UDP_PY_CONTROL_PORT))
+  
     print(f"[CTRL] Listening for exercise selection on UDP port {UDP_CONTROL_PORT}...")
     while True:
         try:
-            data, addr = sock_ctrl.recvfrom(1024)
+            data, addr = sock_ctrl.recvfrom(UDP_MAX_PACKET_BYTES)
             txt = data.decode("utf-8")
             msg = json.loads(txt)
             ex = msg.get("exercise")
@@ -353,7 +358,8 @@ def run_live(out_dir: str, show: bool):
                     ex = current_exercise
 
                 exercises_seen.add(ex)
-
+              
+                # Mirror view so user movement matches what they see (like a selfie camera).
                 frame_flipped = cv2.flip(frame, 1)
                 rgb = cv2.cvtColor(frame_flipped, cv2.COLOR_BGR2RGB)
                 res = pose.process(rgb)
@@ -384,6 +390,11 @@ def run_live(out_dir: str, show: bool):
                 rep_count = 0
 
                 # per-exercise logic 
+              
+                # - choose the tracked feature (elbow or shoulder angle)
+                # - generate feedback label/message (for UI)
+                # - update the corresponding angle-cycle rep counter
+
                 if ex == "curl":
                     feature_val, posture_label, feedback = classify_curl(pts)
                     curl_counter.update(feature_val)
@@ -426,7 +437,8 @@ def run_live(out_dir: str, show: bool):
                         "right_shoulder": float(R_sh) if R_sh is not None else None,
                     }
                 }
-                sock_out.sendto(json.dumps(msg).encode("utf-8"), (UDP_OUT_IP, UDP_OUT_PORT))
+                sock_out.sendto(json.dumps(msg).encode("utf-8"), (UDP_UNITY_IP, UDP_UNITY_PORT))
+
 
                 # DRAW 
                 draw_skeleton(frame_flipped, pts)
